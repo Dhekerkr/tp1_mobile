@@ -17,41 +17,82 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Arrangement // <= needed for Row spacing
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { EventsScreen() }
+        setContent { AppNavigation() }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventsScreen() {
+fun AppNavigation() {
+    val navController = rememberNavController()
+
     Scaffold(
         topBar = {
+            // One TopBar for all screens; title changes with route
+            val currentRoute = navController.currentBackStackEntry?.destination?.route
+            val title = when (currentRoute) {
+                "inscription" -> "Inscription"
+                "desole" -> "Désolé"
+                else -> "Accueil"
+            }
             TopAppBar(
-                title = { Text("Evènements") },
-                actions = {
-                    IconButton(onClick ={}) {
-                        Icon(Icons.Default.Favorite, contentDescription = "Favori")
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = { /* no-op */ }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                actions = {
+                    IconButton(onClick = { /* no-op */ }) {
+                        Icon(Icons.Default.Favorite, contentDescription = "Favori")
                     }
                 }
             )
         }
     ) { inner ->
+        NavHost(
+            navController = navController,
+            startDestination = "accueil",
+            modifier = Modifier.padding(inner)
+        ) {
+            composable("accueil") {
+                EventsScreen(
+                    onInscription = { navController.navigate("inscription") },
+                    onDesole = { navController.navigate("desole") }
+                )
+            }
+            composable("inscription") {
+                InscriptionScreen(onBack = { navController.popBackStack() })
+            }
+            composable("desole") {
+                DesoleScreen(onBack = { navController.popBackStack() })
+            }
+        }
+    }
+}
+
+@Composable
+fun EventsScreen(onInscription: () -> Unit, onDesole: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Bloc du milieu
         Column(
             modifier = Modifier
-                .padding(inner)
-                .padding(16.dp)
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .weight(1f) // ✅ prend tout l’espace restant
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center // ✅ centre verticalement
         ) {
             Image(
                 painter = painterResource(id = R.drawable.event),
@@ -66,24 +107,28 @@ fun EventsScreen() {
 
             Text("Où : Ecole ingénieur ISIS", fontWeight = FontWeight.SemiBold)
             Text("Quand : 24 octobre")
+        }
 
-            Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(modifier = Modifier.weight(1f), onClick ={}) {
-                    Text("Inscription")
-                }
-                OutlinedButton(modifier = Modifier.weight(1f), onClick ={}) {
-                    Text("Pas intéressé")
-                }
+        // Bloc du bas (boutons)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(modifier = Modifier.weight(1f), onClick = onInscription) {
+                Text("Inscription")
+            }
+            OutlinedButton(modifier = Modifier.weight(1f), onClick = onDesole) {
+                Text("Pas intéressé")
             }
         }
     }
 }
 
+
+
+
 @Preview(showBackground = true)
 @Composable
-fun EventsScreenPreview() = EventsScreen()
+fun EventsScreenPreview() {
+    EventsScreen(onInscription = {}, onDesole = {})
+}
